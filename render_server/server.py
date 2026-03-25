@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-SHARED_SECRET = "PASTE_YOUR_SHARED_SECRET_HERE"  # make up any password
+SHARED_SECRET = "EMAdabest"  # make up any password
                                                    # must match the plugin
 
 # ──────────────────────────────────────────────────────────────────────────────
