@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-SHARED_SECRET = "EMAdabest"  # make up any password
+SHARED_SECRET = "PASTE_YOUR_SHARED_SECRET_HERE"  # make up any password
                                                    # must match the plugin
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -142,6 +142,55 @@ def complete_unban(unban_id):
             print(f"[BanQueue] Unban {unban_id} completed ({unban['robloxUsername']})")
             return jsonify(unban)
     return jsonify({"error": "Unban not found"}), 404
+
+
+# ── KICKS ────────────────────────────────────────────────────────────────────
+
+@app.route("/kicks", methods=["POST"])
+def create_kick():
+    data = request.get_json()
+    if not data or data.get("secret") != SHARED_SECRET:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    roblox_user_id = data.get("robloxUserId")
+    roblox_username = data.get("robloxUsername")
+    reason = data.get("reason", "Kicked by server moderation.")
+    if not roblox_user_id or not roblox_username:
+        return jsonify({"error": "robloxUserId and robloxUsername are required"}), 400
+
+    kicks = load("kicks.json")
+    kick = {
+        "id": next_id(kicks),
+        "robloxUserId": roblox_user_id,
+        "robloxUsername": roblox_username,
+        "reason": reason,
+        "status": "pending",
+        "createdAt": now(),
+        "completedAt": None,
+    }
+    kicks.append(kick)
+    save("kicks.json", kicks)
+    print(f"[BanQueue] Queued kick for {roblox_username}")
+    return jsonify(kick), 201
+
+
+@app.route("/kicks/pending", methods=["GET"])
+def pending_kicks():
+    kicks = load("kicks.json")
+    return jsonify({"kicks": [k for k in kicks if k["status"] == "pending"]})
+
+
+@app.route("/kicks/<int:kick_id>/complete", methods=["PATCH"])
+def complete_kick(kick_id):
+    kicks = load("kicks.json")
+    for kick in kicks:
+        if kick["id"] == kick_id:
+            kick["status"] = "completed"
+            kick["completedAt"] = now()
+            save("kicks.json", kicks)
+            print(f"[BanQueue] Kick {kick_id} completed ({kick['robloxUsername']})")
+            return jsonify(kick)
+    return jsonify({"error": "Kick not found"}), 404
 
 
 # ── HEALTH ────────────────────────────────────────────────────────────────────
